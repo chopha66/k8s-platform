@@ -1,7 +1,7 @@
 # K8S Platform
 
 Vagrant와 쉘 스크립트로 구축한 3노드 Kubernetes 클러스터.  
-`vagrant up` 명령 하나로 베어 VM 프로비저닝부터 클러스터 부트스트랩, CNI 설치까지 완전 자동으로 재현된다.
+명령 두 번으로 베어 VM 프로비저닝부터 클러스터 부트스트랩, CNI, 로드밸런서 구성까지 완전 자동으로 재현된다.
 
 ## 아키텍처
 
@@ -10,38 +10,52 @@ Windows 11 Host (Ryzen 7500F / 32GB)
 └── VirtualBox (host-only network 192.168.56.0/24)
     ├── master    192.168.56.10   control-plane (2 vCPU / 4GB)
     ├── worker-1  192.168.56.11   worker        (2 vCPU / 4GB)
-    └── worker-2  192.168.56.12   worker        (2 vCPU / 4GB)
+    ├── worker-2  192.168.56.12   worker        (2 vCPU / 4GB)
+    └── LoadBalancer IP Pool      192.168.56.200-250 (MetalLB)
 ```
 
-| 구성 요소 | 선택 | 버전                 |
+| 구성 요소 | 선택 | 버전 |
 |---|---|--------------------|
-| OS | Ubuntu Server | 24.04 LTS          |
-| Kubernetes | kubeadm | 1.35               |
-| 컨테이너 런타임 | containerd | apt 기본             |
+| OS | Ubuntu Server | 24.04 LTS |
+| Kubernetes | kubeadm | 1.35 |
+| 컨테이너 런타임 | containerd | apt 기본 |
 | CNI | Cilium | cilium-cli v0.19.6 |
+| LoadBalancer | MetalLB (L2 mode) | v0.16.1 |
 
 ## 빠른 시작
 
 ```bash
 git clone <this-repo> && cd k8s-platform
-vagrant up          # VM 생성 → OS 준비 → kubeadm init/join → Cilium 설치
-vagrant ssh master -c "kubectl get nodes"   # 3대 Ready 확인
+
+# 1. 클러스터 부트스트랩 (VM 생성 → kubeadm init/join → Cilium)
+vagrant up
+
+# 2. 애드온 설치 (모든 노드 join 후 실행해야 함 — 아래 '겪은 문제들' 참고)
+vagrant provision master --provision-with metallb-manifests,metallb-addons
+
+# 확인
+vagrant ssh master -c "kubectl get nodes"
 ```
 
-클러스터 전체 삭제 후 재생성: `vagrant destroy -f && vagrant up`
+클러스터 전체 재생성: vagrant destroy -f 후 위 과정 반복.
 
 ## 저장소 구조
 
 ```
-.
-├── Vagrantfile              # VM 정의 (노드 스펙/네트워크/역할 분기)
-└── scripts/
-    ├── common.sh            # 3노드 공통: swap/커널/containerd/kubeadm 준비
-    ├── cp-init.sh           # control-plane: kubeadm init + kubeconfig + Cilium
-    └── worker-init.sh       # worker: kubeadm join
+k8s-platform/
+├── Vagrantfile                    # VM 정의 (노드 스펙/네트워크/역할 분기)
+├── init_vm/
+│   └── scripts/
+│       ├── common.sh              # 3노드 공통: swap/커널/containerd/kubeadm 준비
+│       ├── master_init.sh         # master: kubeadm init + kubeconfig + Cilium
+│       └── worker_init.sh         # worker: kubeadm join
+└── k8s/
+    ├── metallb/                   # IPAddressPool / L2Advertisement
+    └── scripts/
+        └── metallb_addons.sh      # MetalLB 설치 + 설정 적용
 ```
 
-프로비저닝 흐름: 모든 노드가 `common.sh`를 실행한 뒤, Vagrantfile의 `role` 값에 따라 control-plane은 `master_init.sh`, worker는 `worker_init.sh`를 실행한다.
+프로비저닝 흐름: 모든 노드가 common.sh 실행 → 역할에 따라 master_init.sh 또는 worker_init.sh 실행 → 클러스터 완성 후 애드온을 별도 단계로 설치.
 
 ## 주요 설계 결정
 
@@ -61,10 +75,14 @@ vagrant ssh master -c "kubectl get nodes"   # 3대 Ready 확인
 
 **쉘 스크립트 따옴표 파싱 에러.** `unexpected EOF while looking for matching '"'`는 에러가 난 줄이 아니라 따옴표가 열린 채 닫히지 않은 상류 지점이 원인. ShellCheck(`bash -n`)로 조기 검출.
 
+**kubectl wait 레이스 컨디션.** kubectl apply 직후 kubectl wait를 실행하면 파드가 아직 생성되지 않아 no matching resources found로 즉시 실패한다. wait는 "조건 충족 대기"만 하고 "리소스 등장 대기"는 하지 않기 때문. 파드 오브젝트 생성을 확인하는 폴링 루프를 앞단에 추가해 해결.
+
+**프로비저닝 순서 의존성.** vagrant up은 노드를 순차 처리하므로, master 프로비저닝 시점에 worker가 존재하지 않는다. 이 상태에서 애드온을 설치하면 Deployment 파드가 스케줄될 노드가 없어(control-plane taint) Pending에 빠진다. 애드온 설치를 run: "never" provisioner로 분리하고 전체 클러스터 완성 후 명시적으로 실행하도록 구조 변경. 부트스트랩 순서 의존성 문제로, GitOps 도입(3단계)의 직접적 동기가 됐다.
+
 ## 로드맵
 
 - [x] 1단계: VM 프로비저닝 + kubeadm 클러스터 자동화
-- [ ] 2단계: MetalLB, Ingress, cert-manager
+- [ ] 2단계: MetalLB✅, API Gateway, cert-manager
 - [ ] 3단계: GitOps (ArgoCD)
 - [ ] 4단계: 옵저버빌리티 (Prometheus/Grafana/Loki)
 - [ ] 5단계: 시크릿 관리 + 보안 강화
