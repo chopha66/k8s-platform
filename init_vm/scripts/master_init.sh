@@ -14,7 +14,7 @@ if [ -f /etc/kubernetes/admin.conf ]; then
 else
   echo "=== [1/3] kubeadm init ==="
   kubeadm init \
-    --apiserver-advertise-address="${CP_IP}" \
+    --apiserver-advertise-address="${MASTER_IP}" \
     --pod-network-cidr="${POD_CIDR}" \
     --token "${TOKEN}" \
     --token-ttl 0 \
@@ -42,7 +42,8 @@ if ! kubectl get ds -n kube-system cilium &> /dev/null; then
     --set ipam.operator.clusterPoolIPv4PodCIDRList="${POD_CIDR}" \
     --set kubeProxyReplacement=true \
     --set k8sServiceHost="${MASTER_IP}" \
-    --set k8sServicePort=6443
+    --set k8sServicePort=6443 \
+    --set gatewayAPI.enabled=true
 fi
 
 echo "=== 완료 ==="
