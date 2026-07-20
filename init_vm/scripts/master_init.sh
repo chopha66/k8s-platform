@@ -2,7 +2,7 @@
 # master 전용: kubeadm init + kubeconfig + Cilium CNI
 set -euo pipefail
 
-CP_IP="192.168.56.10"
+MASTER_IP="192.168.56.10"
 POD_CIDR="10.244.0.0/16"
 # 고정 토큰 (형식: [a-z0-9]{6}.[a-z0-9]{16}) — worker join에 사용
 TOKEN="master.0123456789abcdef"
@@ -17,7 +17,8 @@ else
     --apiserver-advertise-address="${CP_IP}" \
     --pod-network-cidr="${POD_CIDR}" \
     --token "${TOKEN}" \
-    --token-ttl 0
+    --token-ttl 0 \
+    --skip-phases=addon/kube-proxy
 fi
 
 echo "=== [2/3] kubeconfig 설정 (vagrant 유저) ==="
@@ -37,7 +38,11 @@ if ! command -v cilium &> /dev/null; then
 fi
 
 if ! kubectl get ds -n kube-system cilium &> /dev/null; then
-  cilium install --set ipam.operator.clusterPoolIPv4PodCIDRList="${POD_CIDR}"
+  cilium install \
+    --set ipam.operator.clusterPoolIPv4PodCIDRList="${POD_CIDR}" \
+    --set kubeProxyReplacement=true \
+    --set k8sServiceHost="${MASTER_IP}" \
+    --set k8sServicePort=6443
 fi
 
 echo "=== 완료 ==="
