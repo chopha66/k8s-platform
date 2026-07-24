@@ -4,7 +4,9 @@ metadata:
   name: kube-prometheus-stack-grafana
 spec:
   parentRefs:
-    - name: cilium-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: cilium-gateway
       namespace: gateway
   hostnames:
     - grafana.local
@@ -14,8 +16,11 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: kube-prometheus-stack-grafana
+        - group: ""
+          kind: Service
+          name: kube-prometheus-stack-grafana
           port: 80
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -23,7 +28,9 @@ metadata:
   name: kube-prometheus-stack-alertmanager
 spec:
   parentRefs:
-    - name: cilium-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: cilium-gateway
       namespace: gateway
   hostnames:
     - alertmanager.local
@@ -33,8 +40,11 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: kube-prometheus-stack-alertmanager
+        - group: ""
+          kind: Service
+          name: kube-prometheus-stack-alertmanager
           port: 9093
+          weight: 1
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -42,7 +52,9 @@ metadata:
   name: kube-prometheus-stack-prometheus
 spec:
   parentRefs:
-    - name: cilium-gateway
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: cilium-gateway
       namespace: gateway
   hostnames:
     - prometheus.local
@@ -52,5 +64,8 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: kube-prometheus-stack-prometheus
+        - group: ""
+          kind: Service
+          name: kube-prometheus-stack-prometheus
           port: 9090
+          weight: 1
