@@ -46,7 +46,7 @@ prometheus:
     scrapeConfigSelectorNilUsesHelmValues: false
 
     retention: 7d
-    retentionSize: 1G
+    retentionSize: 1GiB
 
     replicas: 1
     shards: 1
