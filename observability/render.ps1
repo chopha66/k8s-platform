@@ -17,7 +17,7 @@ $Namespace  = "monitoring"
 $ScriptDir  = $PSScriptRoot
 $ChartPath  = Join-Path $ScriptDir "prometheus\charts\kube-prometheus-stack"
 $ValuesPath = Join-Path $ScriptDir "prometheus\prometheus-values.yaml"
-$OutDir     = Join-Path $ScriptDir "prometheus\rendered"
+$OutDir     = Join-Path $ScriptDir "prometheus\rendered\base"
 
 Write-Host "=== [1/3] 사전 확인 ===" -ForegroundColor Cyan
 if (-not (Test-Path $ChartPath)) {
@@ -35,7 +35,6 @@ if (Test-Path $OutDir) {
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 Write-Host "=== [3/3] helm template (리소스별 분리 출력) ===" -ForegroundColor Cyan
-RD $OutDir
 # --output-dir: 리소스를 원본 templates 구조 그대로 파일별로 분리 저장
 # --include-crds: CRD도 함께 렌더링
 helm template $Release $ChartPath `
