@@ -2,4 +2,68 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - rendered
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-alertmanagerconfigs.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-alertmanagers.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-podmonitors.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-probes.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-prometheusagents.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-prometheuses.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-prometheusrules.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-scrapeconfigs.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-servicemonitors.yaml
+  - rendered/kube-prometheus-stack/charts/crds/crds/crd-thanosrulers.yaml
+
+  - rendered/kube-prometheus-stack/charts/grafana/templates/clusterrole.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/clusterrolebinding.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/configmap.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/configmap-dashboard-provider.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/deployment.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/secret.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/service.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/serviceaccount.yaml
+  - rendered/kube-prometheus-stack/charts/grafana/templates/servicemonitor.yaml
+
+  - rendered/kube-prometheus-stack/charts/kube-state-metrics/templates/clusterrolebinding.yaml
+  - rendered/kube-prometheus-stack/charts/kube-state-metrics/templates/deployment.yaml
+  - rendered/kube-prometheus-stack/charts/kube-state-metrics/templates/role.yaml
+  - rendered/kube-prometheus-stack/charts/kube-state-metrics/templates/service.yaml
+  - rendered/kube-prometheus-stack/charts/kube-state-metrics/templates/serviceaccount.yaml
+  - rendered/kube-prometheus-stack/charts/kube-state-metrics/templates/servicemonitor.yaml
+
+  - rendered/kube-prometheus-stack/charts/prometheus-node-exporter/templates/daemonset.yaml
+  - rendered/kube-prometheus-stack/charts/prometheus-node-exporter/templates/service.yaml
+  - rendered/kube-prometheus-stack/charts/prometheus-node-exporter/templates/serviceaccount.yaml
+  - rendered/kube-prometheus-stack/charts/prometheus-node-exporter/templates/servicemonitor.yaml
+
+  - rendered/kube-prometheus-stack/templates/alertmanager/alertmanager.yaml
+  - rendered/kube-prometheus-stack/templates/alertmanager/route.yaml
+  - rendered/kube-prometheus-stack/templates/alertmanager/secret.yaml
+  - rendered/kube-prometheus-stack/templates/alertmanager/service.yaml
+  - rendered/kube-prometheus-stack/templates/alertmanager/serviceaccount.yaml
+  - rendered/kube-prometheus-stack/templates/alertmanager/servicemonitor.yaml
+
+  - rendered/kube-prometheus-stack/templates/exporters/core-dns/service.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/core-dns/servicemonitor.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kube-api-server/servicemonitor.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kube-controller-manager/service.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kube-controller-manager/servicemonitor.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kube-etcd/service.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kube-etcd/servicemonitor.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kube-scheduler/service.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kube-scheduler/servicemonitor.yaml
+  - rendered/kube-prometheus-stack/templates/exporters/kubelet/servicemonitor.yaml
+
+  - rendered/kube-prometheus-stack/templates/prometheus/clusterrole.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus/clusterrolebinding.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus/prometheus.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus/route.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus/service.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus/serviceaccount.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus/servicemonitor.yaml
+
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/clusterrole.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/clusterrolebinding.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/deployment.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/service.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/serviceaccount.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/servicemonitor.yaml
