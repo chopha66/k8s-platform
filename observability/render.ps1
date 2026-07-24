@@ -15,9 +15,9 @@ $Release    = "kube-prometheus-stack"
 $Namespace  = "monitoring"
 
 $ScriptDir  = $PSScriptRoot
-$ChartPath  = Join-Path $ScriptDir "prometheus\charts\kube-prometheus-stack"
-$ValuesPath = Join-Path $ScriptDir "prometheus\prometheus-values.yaml"
-$OutDir     = Join-Path $ScriptDir "prometheus\rendered\base"
+$ChartPath  = Join-Path $ScriptDir "prometheus\helm\charts\kube-prometheus-stack"
+$ValuesPath = Join-Path $ScriptDir "prometheus\helm\prometheus-values.yaml"
+$OutDir     = Join-Path $ScriptDir "prometheus\kustomize\overlays\base\rendered"
 
 Write-Host "=== [1/3] 사전 확인 ===" -ForegroundColor Cyan
 if (-not (Test-Path $ChartPath)) {
