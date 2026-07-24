@@ -52,6 +52,34 @@ resources:
   - rendered/kube-prometheus-stack/templates/exporters/kube-scheduler/servicemonitor.yaml
   - rendered/kube-prometheus-stack/templates/exporters/kubelet/servicemonitor.yaml
 
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/alertmanager-overview.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/apiserver.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/cluster-total.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/controller-manager.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/etcd.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/grafana-overview.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-coredns.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-cluster.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-multicluster.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-namespace.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-node.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-nodes-overview.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-pod.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-workload.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/k8s-resources-workloads-namespace.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/kubelet.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/namespace-by-pod.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/namespace-by-workload.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/node-cluster-rsrc-use.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/node-rsrc-use.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/nodes.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/persistentvolumesusage.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/pod-total.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/prometheus.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/scheduler.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/dashboards-1.14/workload-total.yaml
+  - rendered/kube-prometheus-stack/templates/grafana/configmaps-datasources.yaml
+
   - rendered/kube-prometheus-stack/templates/prometheus/clusterrole.yaml
   - rendered/kube-prometheus-stack/templates/prometheus/clusterrolebinding.yaml
   - rendered/kube-prometheus-stack/templates/prometheus/prometheus.yaml
