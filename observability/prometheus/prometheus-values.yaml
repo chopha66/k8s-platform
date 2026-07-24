@@ -1,0 +1,76 @@
+alertmanager:
+  enabled: true
+  route:
+    main:
+      enabled: true
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      hostnames:
+        - prometheus.local
+      parentRefs:
+        - name: cilium-gateway
+          namespace: gateway
+      matches:
+        - path:
+            type: PathPrefix
+
+grafana:
+  enabled: true
+  adminUser: admin
+  adminPassword: dbswns0430*
+
+kubeProxy:
+  enabled: false
+
+prometheus:
+  enabled: true
+  route:
+    main:
+      enabled: true
+      apiVersion: gateway.networking.k8s.io/v1
+      kind: HTTPRoute
+      hostnames:
+        - prometheus.local
+      parentRefs:
+        - name : cilium-gateway
+          namespace: gateway
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    scrapeConfigSelectorNilUsesHelmValues: false
+
+    retention: 7d
+    retentionSize: 1G
+
+    replicas: 1
+    shards: 1
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+
+    storageSpec: {}
+    ## Using PersistentVolumeClaim
+    ##
+    #  volumeClaimTemplate:
+    #    spec:
+    #      storageClassName: gluster
+    #      accessModes: ["ReadWriteOnce"]
+    #      resources:
+    #        requests:
+    #          storage: 50Gi
+    #      selector: {}
+
+    ## Using tmpfs volume
+    ##
+    #  emptyDir:
+    #    medium: Memory
