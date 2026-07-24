@@ -36,7 +36,6 @@ resources:
   - rendered/kube-prometheus-stack/charts/prometheus-node-exporter/templates/servicemonitor.yaml
 
   - rendered/kube-prometheus-stack/templates/alertmanager/alertmanager.yaml
-  - rendered/kube-prometheus-stack/templates/alertmanager/route.yaml
   - rendered/kube-prometheus-stack/templates/alertmanager/secret.yaml
   - rendered/kube-prometheus-stack/templates/alertmanager/service.yaml
   - rendered/kube-prometheus-stack/templates/alertmanager/serviceaccount.yaml
@@ -56,11 +55,19 @@ resources:
   - rendered/kube-prometheus-stack/templates/prometheus/clusterrole.yaml
   - rendered/kube-prometheus-stack/templates/prometheus/clusterrolebinding.yaml
   - rendered/kube-prometheus-stack/templates/prometheus/prometheus.yaml
-  - rendered/kube-prometheus-stack/templates/prometheus/route.yaml
   - rendered/kube-prometheus-stack/templates/prometheus/service.yaml
   - rendered/kube-prometheus-stack/templates/prometheus/serviceaccount.yaml
   - rendered/kube-prometheus-stack/templates/prometheus/servicemonitor.yaml
 
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/clusterrole.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/clusterrolebinding.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/job-createSecret.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/job-patchWebhook.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/role.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/rolebinding.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/job-patch/serviceaccount.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/mutatingWebhookConfiguration.yaml
+  - rendered/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks/validatingWebhookConfiguration.yaml
   - rendered/kube-prometheus-stack/templates/prometheus-operator/clusterrole.yaml
   - rendered/kube-prometheus-stack/templates/prometheus-operator/clusterrolebinding.yaml
   - rendered/kube-prometheus-stack/templates/prometheus-operator/deployment.yaml

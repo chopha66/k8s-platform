@@ -1,18 +1,5 @@
 alertmanager:
   enabled: true
-  route:
-    main:
-      enabled: true
-      apiVersion: gateway.networking.k8s.io/v1
-      kind: HTTPRoute
-      hostnames:
-        - prometheus.local
-      parentRefs:
-        - name: cilium-gateway
-          namespace: gateway
-      matches:
-        - path:
-            type: PathPrefix
 
 grafana:
   enabled: true
@@ -24,20 +11,6 @@ kubeProxy:
 
 prometheus:
   enabled: true
-  route:
-    main:
-      enabled: true
-      apiVersion: gateway.networking.k8s.io/v1
-      kind: HTTPRoute
-      hostnames:
-        - prometheus.local
-      parentRefs:
-        - name : cilium-gateway
-          namespace: gateway
-      matches:
-        - path:
-            type: PathPrefix
-            value: /
 
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
