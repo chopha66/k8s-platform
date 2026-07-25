@@ -14,16 +14,20 @@ Windows 11 Host (Ryzen 7500F / 32GB)
     └── LoadBalancer IP Pool      192.168.56.200-250 (MetalLB)
 ```
 
-| 구성 요소 | 선택 | 버전         |
-|---|---|------------|
-| OS | Ubuntu Server | 24.04 LTS  |
-| Kubernetes | kubeadm | 1.35       |
-| 컨테이너 런타임 | containerd | apt 기본     |
-| CNI / kube-proxy 대체 | Cilium (KPR 모드) | 1.19.5     |
-| LoadBalancer | MetalLB (L2 mode) | v0.16.1    |
-| L7 라우팅 | Cilium Gateway API | CRD v1.3.0 |
-| GitOps | ArgoCD (App of Apps) | v3.4.5     |
-| 메트릭/모니터링 | 	kube-prometheus-stack (rendered manifests) | chart 87.18.1    |
+| 구성 요소 | 선택 | 버전            |
+|---|---|---------------|
+| OS | Ubuntu Server | 24.04 LTS     |
+| Kubernetes | kubeadm | 1.35          |
+| 컨테이너 런타임 | containerd | apt 기본        |
+| CNI / kube-proxy 대체 | Cilium (KPR 모드) | 1.19.5        |
+| LoadBalancer | MetalLB (L2 mode) | v0.16.1       |
+| L7 라우팅 | Cilium Gateway API | CRD v1.3.0    |
+| GitOps | ArgoCD (App of Apps) | v3.4.5        |
+| 메트릭/모니터링 | 	kube-prometheus-stack (rendered manifests) | chart 87.18.1 |
+| 데모 워크로드 | 	frontend/backend/redis/redis-insight + load-gen (Kustomize) | -             |
+
+**아키텍처 구성도**
+![Demo Dashboard 구성](docs/images/architecture.png)
 
 ## 빠른 시작
 
@@ -65,13 +69,17 @@ k8s-platform/
 ├── argocd/
 │   ├── resources/                 # root-app / HttpRoute
 │   ├── apps/                      # Sample용 App
-│   └── whoami/                    # whoami(Sample용 App) Manifes
+│   └── whoami/                    # whoami(Sample용 App) Manifest
+├── demo-apps/
+│   ├── backend/                   # Sample용 App (Backend)
+│   ├── frontend/                  # Sample용 App (Frontend)
+│   ├── load-generator/            # Sample용 App (트래픽 생성)
+│   └── redis/                     # Sample용 App (redis)
 └── observability/
     ├── prometheus/                # kube-prometheus-stack
-        ├── helm                   # Helm Chart + values.yaml
-        └── kustomize              # 적용 Manifest
-    ├── render.ps1                 # Helm Template 렌더링 스크립트
-    └── whoami/                    # whoami(Sample용 App) Manifest
+    │   ├── helm                   # Helm Chart + values.yaml
+    │   └── kustomize              # 적용 Manifest
+    └── render.ps1                 # Helm Template 렌더링 스크립트
 ```
 
 프로비저닝 흐름: 모든 노드가 common.sh 실행 → 역할에 따라 master_init.sh 또는 worker_init.sh 실행 → 클러스터 완성 후 애드온을 별도 단계로 설치.
@@ -107,6 +115,12 @@ Git을 단일 진실 공급원으로 삼아, root Application 하나가 하위 A
 **Rendered Manifests Pattern (vs ArgoCD 네이티브 Helm).**  
 
 대형 Helm 차트(kube-prometheus-stack)를 GitOps로 배포할 때, ArgoCD가 클러스터에서 실시간 helm template하는 대신 로컬에서 미리 렌더링한 순수 YAML을 Git에 커밋하고 ArgoCD는 그 결과물만 동기화하도록 했다. 장점은 Git에 실제 배포될 매니페스트가 그대로 보여 diff가 명확하고, ArgoCD가 Helm 렌더링을 하지 않아 CRD 크기 문제 등을 로컬에서 미리 걸러낸다는 것. 트레이드오프로 values 변경 시 재렌더링→커밋→push 단계가 명시적으로 필요하다. 렌더링은 로컬 차트(helm pull) + helm template --output-dir로 리소스별 파일을 분리 생성하며, Windows 환경이라 render.ps1로 자동화했다.
+
+**Kustomize (직접 만든 앱), Helm (서드파티 차트).**  
+
+패키징된 서드파티(kube-prometheus-stack)는 Helm으로, 직접 구성한 데모 마이크로서비스는 Kustomize base로 관리해 도구를 적재적소에 배분했다. 관측성 데모용으로 계측된 오픈소스 앱(prometheus-example-app, redis+exporter, load-generator, Redis Insight)을 조합하고, 각 앱에 ServiceMonitor를 붙여 Prometheus가 커스텀 메트릭을 수집하도록 구성했다. Grafana에서 골든 시그널(트래픽·에러·지연) 및 Request 분석 대시보드로 시각화한다.
+
+![Demo Dashboard 구성](docs/images/DemoDashboard.png)
 
 **고정 부트스트랩 토큰.**  
 
@@ -161,6 +175,14 @@ kube-proxy가 없는 클러스터(KPR)에서 차트 기본값(kubeProxy.enabled:
 **GitOps 영구 drift**  
 
 쿠버네티스 defaulting. HTTPRoute의 parentRefs/backendRefs에서 group·kind·weight를 생략하면 쿠버네티스가 기본값을 자동으로 채운다. Git에는 없고 클러스터에는 있는 이 값들 때문에 리소스가 Healthy임에도 영구 OutOfSync 상태가 된다. 자동 채워지는 기본값을 Git에 명시(defaulting을 코드에 반영)해 해결. drift를 숨기는 ignoreDifferences 대신 명시를 택해 "Git이 진실"을 유지
+
+**Kustomize commonLabels의 selector immutability.**  
+
+commonLabels는 라벨을 파드·서비스뿐 아니라 Deployment의 spec.selector에도 주입하는데, selector는 immutable이라 기존 리소스에 재적용 시 field is immutable로 실패한다. deprecated된 commonLabels 대신 labels + includeSelectors: false로 전환해 메타데이터 라벨만 추가하고 selector는 보존하도록 해결.
+
+**멀티클러스터 전제 대시보드의 No data.**  
+
+kube-prometheus-stack 기본 대시보드 다수가 모든 쿼리에 cluster="$cluster" 라벨 필터를 건다. 단일 클러스터 홈랩에는 cluster 라벨이 없어 전부 걸러져 No data가 된다. 직접 만든 대시보드는 해당 필터 없이 정상 동작하며, 근본 해결은 Prometheus externalLabels로 cluster 라벨을 부여하는 것. (etcd 대시보드는 별개로, kubeadm etcd가 메트릭을 localhost에만 노출해 수집되지 않음.)
 
 ## 로드맵
 
