@@ -1,0 +1,31 @@
+# Redis Insight — Redis 공식 웹 GUI (키 탐색, 메모리 분석, 실행 통계)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-insight
+  labels:
+    app: redis-insight
+    tier: tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-insight
+  template:
+    metadata:
+      labels:
+        app: redis-insight
+        tier: tools
+    spec:
+      containers:
+        - name: redisinsight
+          image: redis/redisinsight:2.60
+          ports:
+            - name: http
+              containerPort: 5540
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

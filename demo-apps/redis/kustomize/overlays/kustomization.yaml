@@ -5,5 +5,10 @@ namespace: demo-apps
 
 resources:
   - base/deployment.yaml
-  - base/http-route.yaml
   - base/service.yaml
+  - base/redis-insight/deployment.yaml
+  - base/redis-insight/http-route.yaml
+  - base/redis-insight/service.yaml
+
+commonLabels:
+  stack: demo-apps
