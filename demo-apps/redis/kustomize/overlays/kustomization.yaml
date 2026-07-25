@@ -6,6 +6,7 @@ namespace: demo-apps
 resources:
   - base/deployment.yaml
   - base/service.yaml
+  - base/servicemonitor.yaml
   - base/redis-insight/deployment.yaml
   - base/redis-insight/http-route.yaml
   - base/redis-insight/service.yaml

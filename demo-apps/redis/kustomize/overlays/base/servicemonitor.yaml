@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  labels:
+    app: redis
+    stack: demo-apps
+spec:
+  selector:
+    matchLabels:
+      app: redis
+      stack: demo-apps
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

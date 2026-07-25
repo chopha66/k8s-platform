@@ -6,6 +6,7 @@ namespace: demo-apps
 resources:
   - base/deployment.yaml
   - base/service.yaml
+  - base/servicemonitor.yaml
 
 commonLabels:
   stack: demo-apps
