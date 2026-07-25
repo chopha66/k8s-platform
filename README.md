@@ -23,6 +23,7 @@ Windows 11 Host (Ryzen 7500F / 32GB)
 | LoadBalancer | MetalLB (L2 mode) | v0.16.1    |
 | L7 라우팅 | Cilium Gateway API | CRD v1.3.0 |
 | GitOps | ArgoCD (App of Apps) | v3.4.5     |
+| 메트릭/모니터링 | 	kube-prometheus-stack (rendered manifests) | chart 87.18.1    |
 
 ## 빠른 시작
 
@@ -61,9 +62,15 @@ k8s-platform/
 │   └── scripts/
 │       ├── metallb-addons.sh      # MetalLB 설치 + 설정
 │       └── gateway-addons.sh      # Gateway API CRD + Cilium Gateway 활성화
-└── argocd/
-    ├── resources/                 # root-app / HttpRoute
-    ├── apps/                      # Sample용 App
+├── argocd/
+│   ├── resources/                 # root-app / HttpRoute
+│   ├── apps/                      # Sample용 App
+│   └── whoami/                    # whoami(Sample용 App) Manifes
+└── observability/
+    ├── prometheus/                # kube-prometheus-stack
+        ├── helm                   # Helm Chart + values.yaml
+        └── kustomize              # 적용 Manifest
+    ├── render.ps1                 # Helm Template 렌더링 스크립트
     └── whoami/                    # whoami(Sample용 App) Manifest
 ```
 
@@ -96,6 +103,10 @@ Cilium 내장 기능으로도 가능하지만, 베어메탈 표준인 MetalLB를
 
 2단계까지 겪은 수동 apply·순서 의존성·코드와 클러스터의 괴리를 구조적으로 해결하기 위해 도입했다.  
 Git을 단일 진실 공급원으로 삼아, root Application 하나가 하위 Application들을 관리하는 App of Apps 패턴을 채택했다. ArgoCD 자신은 자기를 배포할 수 없으므로(순환) 설치만 부트스트랩 스크립트에 남기고, 그 이후 모든 워크로드는 Git push로 배포된다. 워크로드는 whoami부터 점진적으로 이관했다. `syncPolicy.automated`(prune·selfHeal)를 켜 자동 동기화와 drift 자동 복구를 얻는 대신, 실수로 인한 리소스 삭제 위험을 감수하는 트레이드오프를 택했다.
+
+**Rendered Manifests Pattern (vs ArgoCD 네이티브 Helm).**  
+
+대형 Helm 차트(kube-prometheus-stack)를 GitOps로 배포할 때, ArgoCD가 클러스터에서 실시간 helm template하는 대신 로컬에서 미리 렌더링한 순수 YAML을 Git에 커밋하고 ArgoCD는 그 결과물만 동기화하도록 했다. 장점은 Git에 실제 배포될 매니페스트가 그대로 보여 diff가 명확하고, ArgoCD가 Helm 렌더링을 하지 않아 CRD 크기 문제 등을 로컬에서 미리 걸러낸다는 것. 트레이드오프로 values 변경 시 재렌더링→커밋→push 단계가 명시적으로 필요하다. 렌더링은 로컬 차트(helm pull) + helm template --output-dir로 리소스별 파일을 분리 생성하며, Windows 환경이라 render.ps1로 자동화했다.
 
 **고정 부트스트랩 토큰.**  
 
@@ -143,10 +154,18 @@ Cilium 1.19에선 `cilium` GatewayClass가 자동 생성되지 않는다. `contr
 
 `kubectl apply`는 `last-applied-configuration` annotation에 매니페스트 전체를 백업하는데, ArgoCD의 ApplicationSet CRD가 커서 annotation 크기 한도(256KB)를 초과해 설치가 실패했다. `kubectl apply --server-side`로 전환해 해결(클라이언트가 annotation 백업을 만들지 않음).
 
+**KPR 환경의 kube-proxy 스크랩 실패.**  
+
+kube-proxy가 없는 클러스터(KPR)에서 차트 기본값(kubeProxy.enabled: true)을 두면 존재하지 않는 kube-proxy 메트릭을 스크랩하려다 타겟 다운 알람이 발생한다. kubeProxy.enabled: false로 클러스터 특성에 맞춰 해결.
+
+**GitOps 영구 drift**  
+
+쿠버네티스 defaulting. HTTPRoute의 parentRefs/backendRefs에서 group·kind·weight를 생략하면 쿠버네티스가 기본값을 자동으로 채운다. Git에는 없고 클러스터에는 있는 이 값들 때문에 리소스가 Healthy임에도 영구 OutOfSync 상태가 된다. 자동 채워지는 기본값을 Git에 명시(defaulting을 코드에 반영)해 해결. drift를 숨기는 ignoreDifferences 대신 명시를 택해 "Git이 진실"을 유지
+
 ## 로드맵
 
 - [x] 1단계: VM 프로비저닝 + kubeadm 클러스터 자동화
 - [x] 2단계: MetalLB + Cilium Gateway API
 - [x] 3단계: GitOps (ArgoCD)
-- [ ] 4단계: 옵저버빌리티 (Prometheus/Grafana/Loki + Hubble)
+- [~] 4단계: 옵저버빌리티 (Prometheus/Grafana/Loki + Hubble)
 - [ ] 5단계: 시크릿 관리 + 보안 강화
