@@ -14,17 +14,18 @@ Windows 11 Host (Ryzen 7500F / 32GB)
     └── LoadBalancer IP Pool      192.168.56.200-250 (MetalLB)
 ```
 
-| 구성 요소 | 선택 | 버전            |
-|---|---|---------------|
-| OS | Ubuntu Server | 24.04 LTS     |
-| Kubernetes | kubeadm | 1.35          |
-| 컨테이너 런타임 | containerd | apt 기본        |
-| CNI / kube-proxy 대체 | Cilium (KPR 모드) | 1.19.5        |
-| LoadBalancer | MetalLB (L2 mode) | v0.16.1       |
-| L7 라우팅 | Cilium Gateway API | CRD v1.3.0    |
-| GitOps | ArgoCD (App of Apps) | v3.4.5        |
-| 메트릭/모니터링 | 	kube-prometheus-stack (rendered manifests) | chart 87.18.1 |
-| 데모 워크로드 | 	frontend/backend/redis/redis-insight + load-gen (Kustomize) | -             |
+| 구성 요소               | 선택                                                           | 버전            |
+|---------------------|--------------------------------------------------------------|---------------|
+| OS                  | Ubuntu Server                                                | 24.04 LTS     |
+| Kubernetes          | kubeadm                                                      | 1.35          |
+| 컨테이너 런타임            | containerd                                                   | apt 기본        |
+| CNI / kube-proxy 대체 | Cilium (KPR 모드)                                              | 1.19.5        |
+| LoadBalancer        | MetalLB (L2 mode)                                            | v0.16.1       |
+| L7 라우팅              | Cilium Gateway API                                           | CRD v1.3.0    |
+| GitOps              | ArgoCD (App of Apps)                                         | v3.4.5        |
+| 메트릭/모니터링            | 	kube-prometheus-stack (rendered manifests)                  | chart 87.18.1 |
+| 데모 워크로드             | 	frontend/backend/redis/redis-insight + load-gen (Kustomize) | -             |
+| 네트워크 가시성            | 	Hubble (Cillium eBPF)                                       | -             |
 
 **아키텍처 구성도**
 ![Demo Dashboard 구성](docs/images/architecture.png)
@@ -63,9 +64,12 @@ k8s-platform/
 ├── k8s/
 │   ├── metallb/                   # IPAddressPool / L2Advertisement
 │   ├── gateway/                   # GatewayClass / Gateway
+│   ├── hubble/                    # HttpRoute
 │   └── scripts/
-│       ├── metallb-addons.sh      # MetalLB 설치 + 설정
-│       └── gateway-addons.sh      # Gateway API CRD + Cilium Gateway 활성화
+│       ├── argocd-addons.sh       # argoCD 설치 + aoa 초기 설정
+│       ├── gateway-addons.sh      # Gateway API CRD + Cilium Gateway 활성화
+│       ├── hubble-addons.sh       # Hubble 설치 + 설정
+│       └── metallb-addons.sh      # MetalLB 설치 + 설정
 ├── argocd/
 │   ├── resources/                 # root-app / HttpRoute
 │   ├── apps/                      # Sample용 App
@@ -90,14 +94,13 @@ k8s-platform/
 
 설치 편의보다 클러스터 구성 요소를 직접 다루는 학습 깊이를 우선했다. containerd cgroup 드라이버, CNI, 인증서 부트스트랩을 명시적으로 구성한다.
 
-**Cilium (vs Flannel/Calico).**  
-
-eBPF 기반 CNI로, 향후 NetworkPolicy·Hubble 옵저버빌리티·Gateway API까지 단일 스택으로 확장하기 위해 선택.
-
 **Cilium + KPR (kube-proxy replacement).**  
 
 eBPF 기반 CNI를 선택하고, kube-proxy를 아예 설치하지 않는(`--skip-phases=addon/kube-proxy`) 구성으로 갔다.  
 서비스 라우팅을 iptables 대신 eBPF로 처리해 성능 이점을 얻고, Cilium Gateway API의 전제 조건도 충족한다. KPR 모드에선 Cilium이 API 서버에 직접 접근해야 하므로 `k8sServiceHost/Port`를 명시한다.
+나아가 Cilium의 Hubble을 활성화해 앱 코드 수정 없이 파드 간 L3/L4/L7 통신을 관찰하는 eBPF 네트워크 가시성(서비스 맵, DROPPED 트래픽 추적)을 확보했다. 이는 다른 CNI로는 불가능한 Cilium 고유의 강점으로, CNI 선택 근거(eBPF·단일 스택 확장)를 실제로 활용한 결과다. 향후 NetworkPolicy 적용 시 정책이 트래픽을 실제로 차단하는지 검증하는 도구로 이어진다.
+
+![eBPF 가시성 확보](docs/images/hubble.png)
 
 **Cilium Gateway API (vs Ingress-NGINX, NGINX Gateway Fabric).**  
 
@@ -183,6 +186,11 @@ commonLabels는 라벨을 파드·서비스뿐 아니라 Deployment의 spec.sele
 **멀티클러스터 전제 대시보드의 No data.**  
 
 kube-prometheus-stack 기본 대시보드 다수가 모든 쿼리에 cluster="$cluster" 라벨 필터를 건다. 단일 클러스터 홈랩에는 cluster 라벨이 없어 전부 걸러져 No data가 된다. 직접 만든 대시보드는 해당 필터 없이 정상 동작하며, 근본 해결은 Prometheus externalLabels로 cluster 라벨을 부여하는 것. (etcd 대시보드는 별개로, kubeadm etcd가 메트릭을 localhost에만 노출해 수집되지 않음.)
+
+**cilium CLI의 내부 Helm 소유권 충돌.**  
+
+cilium install/upgrade는 겉보기와 달리 내부적으로 Helm 릴리스로 Cilium을 관리한다. Gateway API 트러블슈팅 때 수동 생성(kubectl)한 GatewayClass는 Helm 소유권 메타데이터가 없어, 이후 Hubble 활성화를 위한 cilium upgrade 시 "cannot be imported ... missing meta.helm.sh/release-name"으로 실패했다.
+Helm이 자기 표식 없는 리소스를 안전을 위해 인수하지 않기 때문. GatewayClass에 app.kubernetes.io/managed-by=Helm 라벨과 meta.helm.sh/release-name/namespace 어노테이션을 부여해 Helm이 인수하도록 해결. (근본 해결은 install 시점에 gatewayAPI를 켜 Cilium이 GatewayClass를 소유하게 하는 것.)
 
 ## 로드맵
 
