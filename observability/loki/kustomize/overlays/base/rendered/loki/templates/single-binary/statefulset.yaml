@@ -20,6 +20,10 @@ spec:
       partition: 0
   serviceName: loki-headless
   revisionHistoryLimit: 10
+  
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Delete
   selector:
     matchLabels:
       app.kubernetes.io/name: loki
@@ -29,6 +33,7 @@ spec:
     metadata:
       annotations:
         checksum/config: 207f7e0f37fa4f634895f55ccd3b955e5588b464e890b3e92f1bd9f1fd124829
+        storage/size: "2Gi"
         kubectl.kubernetes.io/default-container: "loki"
       labels:
         app.kubernetes.io/name: loki
@@ -86,6 +91,8 @@ spec:
               mountPath: /etc/loki/config
             - name: runtime-config
               mountPath: /etc/loki/runtime-config
+            - name: storage
+              mountPath: /var/loki
             - name: sc-rules-volume
               mountPath: "/rules"
           resources:
@@ -146,4 +153,15 @@ spec:
             name: loki-runtime
         - name: sc-rules-volume
           emptyDir: {}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: "2Gi"
 
