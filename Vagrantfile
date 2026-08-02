@@ -51,6 +51,10 @@ EOF
         n.vm.provision "metallb-manifests", type: "file",
             source: "k8s/metallb", destination: "/home/vagrant/k8s/metallb"
         n.vm.provision "metallb-addons", type: "shell", path: "k8s/scripts/metallb-addons.sh", run: "never"
+        # worker join 후 수동 실행 : vagrant provision master --provision-with storage-manifests,storage-addons
+        n.vm.provision "storage-manifests", type: "file",
+            source: "k8s/storage", destination: "/home/vagrant/k8s/storage"
+        n.vm.provision "storage-addons", type: "shell", path: "k8s/scripts/storage-addons.sh", run: "never"
         # worker join 후 수동 실행 : vagrant provision master --provision-with gateway-manifests,gateway-addons
         n.vm.provision "gateway-manifests", type: "file",
             source: "k8s/gateway", destination: "/home/vagrant/k8s/gateway"
