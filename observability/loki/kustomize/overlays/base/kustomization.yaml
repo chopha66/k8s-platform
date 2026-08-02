@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - rendered/loki/templates/backend/clusterrole.yaml
+  - rendered/loki/templates/backend/clusterrolebinding.yaml
+  - rendered/loki/templates/single-binary/service.yaml
+  - rendered/loki/templates/single-binary/service-headless.yaml
+  - rendered/loki/templates/single-binary/statefulset.yaml
+  - rendered/loki/templates/config.yaml
+  - rendered/loki/templates/runtime-configmap.yaml
+  - rendered/loki/templates/service-memberlist.yaml
+  - rendered/loki/templates/serviceaccount.yaml

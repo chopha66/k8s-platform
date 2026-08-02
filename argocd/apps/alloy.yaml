@@ -1,0 +1,22 @@
+# alloy를 GitOps로 관리
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/chopha66/k8s-platform.git
+    targetRevision: master
+    path: observability/alloy/kustomize/overlays
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
