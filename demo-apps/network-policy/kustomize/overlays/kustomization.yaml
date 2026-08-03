@@ -4,6 +4,7 @@ kind: Kustomization
 namespace: demo-apps
 
 resources:
+  - base/allow-observability.yaml
   - base/allow-dns.yaml
   - base/backend.yaml
   - base/default-deny.yaml
