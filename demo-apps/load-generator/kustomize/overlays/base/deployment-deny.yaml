@@ -1,0 +1,39 @@
+# load-generator — frontend에 주기적 요청 → 메트릭 그래프가 살아 움직이게
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-generator
+  labels:
+    app: load-generator
+    tier: load-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: load-generator
+  template:
+    metadata:
+      labels:
+        app: load-generator
+        tier: load-generator
+    spec:
+      containers:
+        - name: loadgen
+          image: curlimages/curl:8.11.0
+          # frontend와 backend를 무한 루프로 호출 (약간의 랜덤 간격)
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              while true; do
+                echo "$(date) calling frontend for deny test";
+                curl -s http://frontend:9090/ > /dev/null;
+                echo "$(date) calling backend for deny test";
+                curl -s http://backend:9090/ > /dev/null;
+                sleep 2;
+              done
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
