@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: load-generator
+  name: load-generator-deny
   labels:
-    app: load-generator
+    app: load-generator-deny
     tier: load-generator
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: load-generator
+      app: load-generator-deny
   template:
     metadata:
       labels:
-        app: load-generator
+        app: load-generator-deny
         tier: load-generator
     spec:
       containers:
