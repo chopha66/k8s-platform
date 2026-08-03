@@ -5,6 +5,7 @@ namespace: demo-apps
 
 resources:
   - base/deployment.yaml
+  - base/deployment-deny.yaml
 
 commonLabels:
   stack: demo-apps
