@@ -1,0 +1,22 @@
+# App간의 NetworkPolicy를 GitOps로 관리
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: network-policy
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/chopha66/k8s-platform.git
+    targetRevision: master
+    path: demo-apps/network-policy/kustomize/overlays
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

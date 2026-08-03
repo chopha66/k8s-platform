@@ -1,0 +1,8 @@
+# default-deny: demo-apps 모든 파드의 ingress 기본 차단
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: default-deny-ingress
+spec:
+  endpointSelector: {}   # 네임스페이스 내 모든 파드
+  ingress: []            # 빈 규칙 = 모든 ingress 차단

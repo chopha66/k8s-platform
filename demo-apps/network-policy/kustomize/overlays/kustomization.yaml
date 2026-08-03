@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: demo-apps
+
+resources:
+  - base/allow-dns.yaml
+  - base/backend.yaml
+  - base/default-deny.yaml
+  - base/frontend.yaml
+  - base/redis.yaml

@@ -1,0 +1,17 @@
+# redis: backend에서만 (L4 — Redis는 HTTP가 아니므로 포트까지)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-redis
+spec:
+  endpointSelector:
+    matchLabels:
+      app: redis
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: backend
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
