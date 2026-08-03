@@ -25,7 +25,9 @@ spec:
           args:
             - |
               while true; do
+                echo "$(date) calling frontend";
                 curl -s http://frontend:8080/ > /dev/null;
+                echo "$(date) calling backend";
                 curl -s http://backend:8080/ > /dev/null;
                 sleep 0.5;
               done
