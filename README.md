@@ -1,7 +1,7 @@
 # K8S Platform
 
 Vagrant와 쉘 스크립트로 구축한 3노드 Kubernetes 클러스터.  
-kube-proxy 없는 eBPF 기반 네트워킹(Cilium KPR) 위에 로드밸런서와 Gateway API까지, 클러스터 전 계층을 코드로 재현한다.
+kube-proxy 없는 eBPF 네트워킹(Cilium KPR) 위에 LB·Gateway API·GitOps·Observability(메트릭·네트워크 가시성)까지, 클러스터 전 계층을 코드로 재현하고 Git을 단일 진실 공급원으로 운영한다.
 
 ## 아키텍처
 
@@ -14,18 +14,20 @@ Windows 11 Host (Ryzen 7500F / 32GB)
     └── LoadBalancer IP Pool      192.168.56.200-250 (MetalLB)
 ```
 
-| 구성 요소               | 선택                                                           | 버전            |
-|---------------------|--------------------------------------------------------------|---------------|
-| OS                  | Ubuntu Server                                                | 24.04 LTS     |
-| Kubernetes          | kubeadm                                                      | 1.35          |
-| 컨테이너 런타임            | containerd                                                   | apt 기본        |
-| CNI / kube-proxy 대체 | Cilium (KPR 모드)                                              | 1.19.5        |
-| LoadBalancer        | MetalLB (L2 mode)                                            | v0.16.1       |
-| L7 라우팅              | Cilium Gateway API                                           | CRD v1.3.0    |
-| GitOps              | ArgoCD (App of Apps)                                         | v3.4.5        |
-| 메트릭/모니터링            | 	kube-prometheus-stack (rendered manifests)                  | chart 87.18.1 |
-| 데모 워크로드             | 	frontend/backend/redis/redis-insight + load-gen (Kustomize) | -             |
-| 네트워크 가시성            | 	Hubble (Cillium eBPF)                                       | -             |
+| 구성 요소               | 선택                                                           | 버전                         |
+|---------------------|--------------------------------------------------------------|----------------------------|
+| OS                  | Ubuntu Server                                                | 24.04 LTS                  |
+| Kubernetes          | kubeadm                                                      | 1.35                       |
+| 컨테이너 런타임            | containerd                                                   | apt 기본                     |
+| CNI / kube-proxy 대체 | Cilium (KPR 모드)                                              | 1.19.5                     |
+| LoadBalancer        | MetalLB (L2 mode)                                            | v0.16.1                    |
+| L7 라우팅              | Cilium Gateway API                                           | CRD v1.3.0                 |
+| GitOps              | ArgoCD (App of Apps)                                         | v3.4.5                     |
+| 메트릭/모니터링            | 	kube-prometheus-stack (rendered manifests)                  | chart 87.18.1              |
+| 로그                  | 		Loki (SingleBinary) + Grafana Alloy                 | chart 7.2.0 + chart 1.11.0 |
+| Storage             | 		local-path-provisioner                | rancher v0.0.30                   |
+| 데모 워크로드             | 	frontend/backend/redis/redis-insight + load-gen (Kustomize) | -                          |
+| 네트워크 가시성            | 	Hubble (Cillium eBPF)                                       | -                          |
 
 **아키텍처 구성도**
 ![Demo Dashboard 구성](docs/images/architecture.png)
@@ -40,7 +42,9 @@ vagrant up
 
 # 2. 애드온 설치 (모든 노드 join 후 실행해야 함 — 아래 '겪은 문제들' 참고)
 vagrant provision master --provision-with metallb-manifests,metallb-addons
+vagrant provision master --provision-with storage-manifests,storage-addons
 vagrant provision master --provision-with gateway-manifests,gateway-addons
+vagrant provision master --provision-with hubble-manifests,hubble-addons
 
 # 3. GitOps 부트스트랩 (ArgoCD 설치 → 이후 워크로드는 Git이 관리)
 vagrant provision master --provision-with argocd-manifests,argocd-addons
@@ -65,11 +69,13 @@ k8s-platform/
 │   ├── metallb/                   # IPAddressPool / L2Advertisement
 │   ├── gateway/                   # GatewayClass / Gateway
 │   ├── hubble/                    # HttpRoute
+│   ├── storage/                   # local-path-storage (rancher)
 │   └── scripts/
 │       ├── argocd-addons.sh       # argoCD 설치 + aoa 초기 설정
 │       ├── gateway-addons.sh      # Gateway API CRD + Cilium Gateway 활성화
 │       ├── hubble-addons.sh       # Hubble 설치 + 설정
-│       └── metallb-addons.sh      # MetalLB 설치 + 설정
+│       ├── hubble-addons.sh       # Hubble 설치 + 설정
+│       └── storage-addons.sh      # local path provisioner 구성 + 설정
 ├── argocd/
 │   ├── resources/                 # root-app / HttpRoute
 │   ├── apps/                      # Sample용 App
@@ -80,6 +86,12 @@ k8s-platform/
 │   ├── load-generator/            # Sample용 App (트래픽 생성)
 │   └── redis/                     # Sample용 App (redis)
 └── observability/
+    ├── alloy/                     # alloy (chart v1.11.0)
+    │   ├── helm                   # Helm Chart + values.yaml
+    │   └── kustomize              # 적용 Manifest
+    ├── loki/                      # loki (chart v7.2.0)
+    │   ├── helm                   # Helm Chart + values.yaml
+    │   └── kustomize              # 적용 Manifest
     ├── prometheus/                # kube-prometheus-stack
     │   ├── helm                   # Helm Chart + values.yaml
     │   └── kustomize              # 적용 Manifest
@@ -121,9 +133,14 @@ Git을 단일 진실 공급원으로 삼아, root Application 하나가 하위 A
 
 **Kustomize (직접 만든 앱), Helm (서드파티 차트).**  
 
-패키징된 서드파티(kube-prometheus-stack)는 Helm으로, 직접 구성한 데모 마이크로서비스는 Kustomize base로 관리해 도구를 적재적소에 배분했다. 관측성 데모용으로 계측된 오픈소스 앱(prometheus-example-app, redis+exporter, load-generator, Redis Insight)을 조합하고, 각 앱에 ServiceMonitor를 붙여 Prometheus가 커스텀 메트릭을 수집하도록 구성했다. Grafana에서 골든 시그널(트래픽·에러·지연) 및 Request 분석 대시보드로 시각화한다.
+패키징된 서드파티(kube-prometheus-stack, Loki, Alloy)는 Helm으로, 직접 구성한 데모 마이크로서비스는 Kustomize base로 관리해 도구를 적재적소에 배분했다. 관측성 데모용으로 계측된 오픈소스 앱(prometheus-example-app, redis+exporter, load-generator, Redis Insight)을 조합하고, 각 앱에 ServiceMonitor를 붙여 Prometheus가 커스텀 메트릭을 수집하도록 구성했다. Grafana에서 골든 시그널(트래픽·에러·지연) 및 Request 분석 대시보드로 시각화한다.  
+로그는 Loki(SingleBinary)와 Grafana Alloy(DaemonSet)로 구성해, Alloy가 전 노드의 파드 로그를 수집·전송하고 Loki가 저장하며 Grafana에서 LogQL로 조회한다. 세 서드파티 차트(prometheus·loki·alloy) 모두 동일한 rendered manifests 패턴으로 로컬 렌더링해 Git에 커밋하며, 이로써 메트릭·로그를 하나의 일관된 배포 방식으로 관리한다.
 
+<Demo Dashboard 구성>
 ![Demo Dashboard 구성](docs/images/DemoDashboard.png)
+
+<Grafana 로그 조회>
+![Grafana 로그 조회](docs/images/loki_log.png)
 
 **고정 부트스트랩 토큰.**  
 
@@ -192,10 +209,14 @@ kube-prometheus-stack 기본 대시보드 다수가 모든 쿼리에 cluster="$c
 cilium install/upgrade는 겉보기와 달리 내부적으로 Helm 릴리스로 Cilium을 관리한다. Gateway API 트러블슈팅 때 수동 생성(kubectl)한 GatewayClass는 Helm 소유권 메타데이터가 없어, 이후 Hubble 활성화를 위한 cilium upgrade 시 "cannot be imported ... missing meta.helm.sh/release-name"으로 실패했다.
 Helm이 자기 표식 없는 리소스를 안전을 위해 인수하지 않기 때문. GatewayClass에 app.kubernetes.io/managed-by=Helm 라벨과 meta.helm.sh/release-name/namespace 어노테이션을 부여해 Helm이 인수하도록 해결. (근본 해결은 install 시점에 gatewayAPI를 켜 Cilium이 GatewayClass를 소유하게 하는 것.)
 
+**Loki read-only 파일시스템 Crash.**  
+
+Loki SingleBinary 파드가 mkdir /var/loki: read-only file system으로 크래시 루프에 빠졌다. persistence 비활성 + 컨테이너 read-only 루트 파일시스템이 겹쳐, 데이터 디렉토리를 만들 수 없던 것. 홈랩에 StorageClass가 없어 PVC도 못 받는 상황이라, local-path-provisioner를 도입해 동적 스토리지(기본 StorageClass)를 제공하고 Loki persistence를 켜서 해결. 스토리지는 애드온 스크립트로, PVC를 쓰는 앱은 GitOps로 분리해 "인프라는 스크립트, 앱은 Git"의 경계를 명확히 했다.
+
 ## 로드맵
 
 - [x] 1단계: VM 프로비저닝 + kubeadm 클러스터 자동화
 - [x] 2단계: MetalLB + Cilium Gateway API
 - [x] 3단계: GitOps (ArgoCD)
-- [~] 4단계: 옵저버빌리티 (Prometheus/Grafana/Loki + Hubble)
+- [x] 4단계: 옵저버빌리티 (Prometheus/Grafana/Loki + Hubble)
 - [ ] 5단계: 시크릿 관리 + 보안 강화
