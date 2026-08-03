@@ -1,0 +1,17 @@
+# 메트릭 포트(frontend/backend 8080, redis-exporter 9121)로의 ingress를 허용.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+spec:
+  endpointSelector: {}   # demo-apps 모든 파드의 메트릭 포트를 대상
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+            - port: "9121"
+              protocol: TCP
