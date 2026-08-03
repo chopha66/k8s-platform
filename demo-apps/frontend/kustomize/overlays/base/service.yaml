@@ -11,3 +11,6 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+    - name: alternative
+      port: 9090
+      targetPort: alternative

@@ -23,6 +23,8 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            - name: alternative
+              containerPort: 9090
           resources:
             requests:
               cpu: 25m
