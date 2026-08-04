@@ -25,7 +25,9 @@ Windows 11 Host (Ryzen 7500F / 32GB)
 | GitOps              | ArgoCD (App of Apps)                                         | v3.4.5                     |
 | 메트릭/모니터링            | 	kube-prometheus-stack (rendered manifests)                  | chart 87.18.1              |
 | 로그                  | 		Loki (SingleBinary) + Grafana Alloy                 | chart 7.2.0 + chart 1.11.0 |
-| Storage             | 		local-path-provisioner                | rancher v0.0.30                   |
+| Storage             | 		local-path-provisioner                | rancher v0.0.30            |
+| 네트워크 정책             | 			CiliumNetworkPolicy (L7, 제로 트러스트)               | -                          |
+| 시크릿 관리             | 		Sealed Secrets                | v0.38.4                    |
 | 데모 워크로드             | 	frontend/backend/redis/redis-insight + load-gen (Kustomize) | -                          |
 | 네트워크 가시성            | 	Hubble (Cillium eBPF)                                       | -                          |
 
@@ -45,6 +47,7 @@ vagrant provision master --provision-with metallb-manifests,metallb-addons
 vagrant provision master --provision-with storage-manifests,storage-addons
 vagrant provision master --provision-with gateway-manifests,gateway-addons
 vagrant provision master --provision-with hubble-manifests,hubble-addons
+vagrant provision master --provision-with sealed-secrets-addons
 
 # 3. GitOps 부트스트랩 (ArgoCD 설치 → 이후 워크로드는 Git이 관리)
 vagrant provision master --provision-with argocd-manifests,argocd-addons
@@ -75,7 +78,8 @@ k8s-platform/
 │       ├── gateway-addons.sh      # Gateway API CRD + Cilium Gateway 활성화
 │       ├── hubble-addons.sh       # Hubble 설치 + 설정
 │       ├── hubble-addons.sh       # Hubble 설치 + 설정
-│       └── storage-addons.sh      # local path provisioner 구성 + 설정
+│       ├── storage-addons.sh      # local path provisioner 구성 + 설정
+│       └── sealed-secrets-addons.sh  # sealed secrets contoller 구성 + 설정
 ├── argocd/
 │   ├── resources/                 # root-app / HttpRoute
 │   ├── apps/                      # Sample용 App
@@ -141,6 +145,14 @@ Git을 단일 진실 공급원으로 삼아, root Application 하나가 하위 A
 
 <Grafana 로그 조회>
 ![Grafana 로그 조회](docs/images/loki_log.png)
+
+**제로 트러스트 네트워크 (CiliumNetworkPolicy, L7).**  
+
+기본 허용(allow-all)인 클러스터 통신을 default-deny로 뒤집고 실제 통신 경로(load-generator→frontend→backend→redis)만 명시적으로 허용했다. Cilium 확장을 활용해 L4(포트)를 넘어 L7(HTTP GET 메서드)까지 제어한다. 제로 트러스트 적용 시 앱 통신뿐 아니라 인프라 통신(CoreDNS 조회, Prometheus 메트릭 스크랩)까지 예외로 열어야 함을 Hubble 관측으로 발견·반영했다. 정책의 실제 차단 여부는 Hubble의 FORWARDED/DROPPED 판정으로 검증한다.
+
+**Sealed Secrets (GitOps 시크릿 딜레마 해결).**  
+
+"모든 것을 Git에 둔다"는 GitOps 원칙과 "비밀번호를 Git에 두면 안 된다"는 보안 원칙의 충돌을, 공개키로 암호화한 SealedSecret을 Git에 커밋하고 클러스터 내 개인키로만 복호화하는 방식으로 해결했다. 실제로 repo에 평문으로 있던 Grafana admin 자격증명을 SealedSecret으로 전환해 평문을 제거했다. 개인키가 클러스터에만 존재하므로 destroy 시 재암호화가 필요하다는 운영 트레이드오프가 있다.
 
 **고정 부트스트랩 토큰.**  
 
@@ -213,10 +225,14 @@ Helm이 자기 표식 없는 리소스를 안전을 위해 인수하지 않기 �
 
 Loki SingleBinary 파드가 mkdir /var/loki: read-only file system으로 크래시 루프에 빠졌다. persistence 비활성 + 컨테이너 read-only 루트 파일시스템이 겹쳐, 데이터 디렉토리를 만들 수 없던 것. 홈랩에 StorageClass가 없어 PVC도 못 받는 상황이라, local-path-provisioner를 도입해 동적 스토리지(기본 StorageClass)를 제공하고 Loki persistence를 켜서 해결. 스토리지는 애드온 스크립트로, PVC를 쓰는 앱은 GitOps로 분리해 "인프라는 스크립트, 앱은 Git"의 경계를 명확히 했다.
 
+**제로 트러스트가 모니터링을 차단.**  
+
+demo-apps에 default-deny를 적용하자 Hubble에서 prometheus(monitoring) → demo-apps 트래픽이 DROPPED로 관찰됐다. 정책이 앱 통신만이 아니라 Prometheus의 메트릭 스크랩까지 막아 메트릭 수집이 끊긴 것. monitoring 네임스페이스에서 메트릭 포트(8080/9121)로의 ingress를 허용하는 예외 정책을 추가해 해결. 관측 도구(Hubble)가 보안 정책의 부작용을 잡아낸 사례로, "제로 트러스트는 인프라 통신(DNS·메트릭·로그)까지 설계해야 한다"는 교훈을 남겼다.
+
 ## 로드맵
 
 - [x] 1단계: VM 프로비저닝 + kubeadm 클러스터 자동화
 - [x] 2단계: MetalLB + Cilium Gateway API
 - [x] 3단계: GitOps (ArgoCD)
-- [x] 4단계: 옵저버빌리티 (Prometheus/Grafana/Loki + Hubble)
-- [ ] 5단계: 시크릿 관리 + 보안 강화
+- [x] 4단계: 옵저버빌리티 : 메트릭(Prometheus/Grafana), 네트워크(Hubble), 로그(Loki/Alloy)
+- [~] 5단계: 시크릿 관리 + 보안 강화 : NetworkPolicy(제로 트러스트)·Sealed Secrets 완료, Pod Security·이미지 스캔 예정
