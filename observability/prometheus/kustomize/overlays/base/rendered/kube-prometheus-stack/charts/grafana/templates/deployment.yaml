@@ -29,7 +29,6 @@ spec:
       annotations:
         checksum/config: 5bceeca3808849664f09f642547ce17fdf495522238ef9ce952b20cfa36b7de5
         checksum/sc-dashboard-provider-config: e70bf6a851099d385178a76de9757bb0bef8299da6d8443602590e44f05fdf24
-        checksum/secret: fcccfe11493c3119e9b4853e909ace2458065a5b4a4aab63718ac233d544cdea
         kubectl.kubernetes.io/default-container: grafana
     spec:
       
@@ -62,12 +61,12 @@ spec:
             - name: REQ_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: kube-prometheus-stack-grafana
+                  name: grafana-admin
                   key: admin-user
             - name: REQ_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kube-prometheus-stack-grafana
+                  name: grafana-admin
                   key: admin-password
             - name: REQ_URL
               value: http://localhost:3000/api/admin/provisioning/dashboards/reload
@@ -100,12 +99,12 @@ spec:
             - name: REQ_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: kube-prometheus-stack-grafana
+                  name: grafana-admin
                   key: admin-user
             - name: REQ_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kube-prometheus-stack-grafana
+                  name: grafana-admin
                   key: admin-password
             - name: REQ_URL
               value: http://localhost:3000/api/admin/provisioning/datasources/reload
@@ -168,12 +167,12 @@ spec:
             - name: GF_SECURITY_ADMIN_USER
               valueFrom:
                 secretKeyRef:
-                  name: kube-prometheus-stack-grafana
+                  name: grafana-admin
                   key: admin-user
             - name: GF_SECURITY_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: kube-prometheus-stack-grafana
+                  name: grafana-admin
                   key: admin-password
             - name: GF_PATHS_DATA
               value: /var/lib/grafana/

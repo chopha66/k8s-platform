@@ -5,4 +5,5 @@ namespace: monitoring
 
 resources:
   - base
+  - resources/secrets/grafana-admin.yaml
   - resources/http-route.yaml

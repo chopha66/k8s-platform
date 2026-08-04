@@ -51,14 +51,14 @@ EOF
         n.vm.provision "metallb-manifests", type: "file",
             source: "k8s/metallb", destination: "/home/vagrant/k8s/metallb"
         n.vm.provision "metallb-addons", type: "shell", path: "k8s/scripts/metallb-addons.sh", run: "never"
-        # worker join 후 수동 실행 : vagrant provision master --provision-with storage-manifests,storage-addons
-        n.vm.provision "storage-manifests", type: "file",
-            source: "k8s/storage", destination: "/home/vagrant/k8s/storage"
-        n.vm.provision "storage-addons", type: "shell", path: "k8s/scripts/storage-addons.sh", run: "never"
         # worker join 후 수동 실행 : vagrant provision master --provision-with gateway-manifests,gateway-addons
         n.vm.provision "gateway-manifests", type: "file",
             source: "k8s/gateway", destination: "/home/vagrant/k8s/gateway"
         n.vm.provision "gateway-addons", type: "shell", path: "k8s/scripts/gateway-addons.sh", run: "never"
+        # worker join 후 수동 실행 : vagrant provision master --provision-with storage-manifests,storage-addons
+        n.vm.provision "storage-manifests", type: "file",
+            source: "k8s/storage", destination: "/home/vagrant/k8s/storage"
+        n.vm.provision "storage-addons", type: "shell", path: "k8s/scripts/storage-addons.sh", run: "never"
         # worker join 후 수동 실행 : vagrant provision master --provision-with argocd-manifests,argocd-addons
         n.vm.provision "argocd-manifests", type: "file",
             source: "argocd/resources", destination: "/home/vagrant/argocd/resources"
@@ -67,6 +67,8 @@ EOF
         n.vm.provision "hubble-manifests", type: "file",
             source: "k8s/hubble", destination: "/home/vagrant/k8s/hubble"
         n.vm.provision "hubble-addons", type: "shell", path: "k8s/scripts/hubble-addons.sh", run: "never"
+        # worker join 후 수동 실행 : vagrant provision master --provision-with sealed-secrets-addons
+        n.vm.provision "sealed-secrets-addons", type: "shell", path: "k8s/scripts/sealed-secrets-addons.sh", run: "never"
       else
         n.vm.provision "worker-init", type: "shell", path: "init_vm/scripts/worker_init.sh"
       end

@@ -3,8 +3,10 @@ alertmanager:
 
 grafana:
   enabled: true
-  adminUser: admin
-  adminPassword: dbswns0430*
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
 
 kubeProxy:
   enabled: false
