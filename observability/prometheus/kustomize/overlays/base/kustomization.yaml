@@ -18,7 +18,6 @@ resources:
   - rendered/kube-prometheus-stack/charts/grafana/templates/configmap.yaml
   - rendered/kube-prometheus-stack/charts/grafana/templates/configmap-dashboard-provider.yaml
   - rendered/kube-prometheus-stack/charts/grafana/templates/deployment.yaml
-  - rendered/kube-prometheus-stack/charts/grafana/templates/secret.yaml
   - rendered/kube-prometheus-stack/charts/grafana/templates/service.yaml
   - rendered/kube-prometheus-stack/charts/grafana/templates/serviceaccount.yaml
   - rendered/kube-prometheus-stack/charts/grafana/templates/servicemonitor.yaml
