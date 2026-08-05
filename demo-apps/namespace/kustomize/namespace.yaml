@@ -1,0 +1,15 @@
+# demo-apps 네임스페이스 정의 + Pod Security Standards 라벨
+# warn/audit 모드로 restricted를 적용 — 위반을 관찰하되 파드는 거부하지 않음
+# (관찰 후 위반을 고치면 enforce로 승격 예정)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-apps
+  labels:
+    # Pod Security Standards — restricted 레벨
+    # enforce는 아직 안 검 (파드 거부 방지). warn/audit로 위반만 표면화.
+    pod-security.kubernetes.io/warn: restricted          # kubectl 적용 시 경고 표시
+    pod-security.kubernetes.io/warn-version: latest
+    pod-security.kubernetes.io/audit: restricted         # 감사 로그에 위반 기록
+    pod-security.kubernetes.io/audit-version: latest
+    # pod-security.kubernetes.io/enforce: restricted     # 관찰 후 활성화 예정

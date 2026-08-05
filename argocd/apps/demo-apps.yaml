@@ -1,18 +1,18 @@
+# argocd/apps/demo-apps-namespace.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: backend
+  name: demo-apps-namespace
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"    # 최우선 순위
 spec:
   project: default
   source:
     repoURL: https://github.com/chopha66/k8s-platform.git
     targetRevision: master
-    path: demo-apps/backend/kustomize/overlays
+    path: demo-apps/namespace/kustomize/overlays/base
   destination:
     server: https://kubernetes.default.svc
-    namespace: demo-apps
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
+    automated: { prune: true, selfHeal: true }
