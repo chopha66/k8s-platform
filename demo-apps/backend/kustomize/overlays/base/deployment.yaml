@@ -17,6 +17,12 @@ spec:
         app: backend
         tier: backend
     spec:
+      # 파드 레벨 securityContext
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534 # nobody 유저
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: app
           image: quay.io/brancz/prometheus-example-app:v0.5.0
@@ -31,17 +37,9 @@ spec:
               memory: 32Mi
             limits:
               memory: 64Mi
-      # 파드 레벨 securityContext
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 65534 # nobody 유저
-        seccompProfile:
-          type: RuntimeDefault
-        containers:
-          - name: app
-            # 컨테이너 레벨 securityContext
-            securityContext:
-              allowPrivilegeEscalation: false
-              capabilities:
-                drop: [ "ALL" ]
-              runAsNonRoot: true
+          # 컨테이너 레벨 securityContext
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ "ALL" ]
+            runAsNonRoot: true
