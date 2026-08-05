@@ -28,6 +28,7 @@ Windows 11 Host (Ryzen 7500F / 32GB)
 | Storage             | 		local-path-provisioner                | rancher v0.0.30            |
 | 네트워크 정책             | 			CiliumNetworkPolicy (L7, 제로 트러스트)               | -                          |
 | 시크릿 관리             | 		Sealed Secrets                | v0.38.4                    |
+| 워크로드 보안            | 			Pod Security Standards (restricted)               | 내장                         |
 | 데모 워크로드             | 	frontend/backend/redis/redis-insight + load-gen (Kustomize) | -                          |
 | 네트워크 가시성            | 	Hubble (Cillium eBPF)                                       | -                          |
 
@@ -154,6 +155,21 @@ Git을 단일 진실 공급원으로 삼아, root Application 하나가 하위 A
 
 "모든 것을 Git에 둔다"는 GitOps 원칙과 "비밀번호를 Git에 두면 안 된다"는 보안 원칙의 충돌을, 공개키로 암호화한 SealedSecret을 Git에 커밋하고 클러스터 내 개인키로만 복호화하는 방식으로 해결했다. 실제로 repo에 평문으로 있던 Grafana admin 자격증명을 SealedSecret으로 전환해 평문을 제거했다. 개인키가 클러스터에만 존재하므로 destroy 시 재암호화가 필요하다는 운영 트레이드오프가 있다.
 
+**Pod Security Standards (점진적 적용).**  
+
+네임스페이스 라벨로 파드의 보안 기준을 강제하는 쿠버네티스 내장 기능을 사용했다. restricted 레벨을 곧바로 enforce하면 기준 미달 파드가 전부 거부되므로, 먼저 warn/audit 모드로 걸어 demo-apps의 위반 항목(runAsNonRoot·allowPrivilegeEscalation·capabilities·seccompProfile 미설정)을 표면화한 뒤, securityContext로 앱을 기준에 맞추고 enforce로 승격하는 실무 순서를 따른다. NetworkPolicy(네트워크 격리)와 짝을 이뤄 네트워크·워크로드 양쪽의 최소 권한을 구현한다.
+
+<Namespace에 PSS 적용>
+```bash
+vagrant@master:~$ kubectl rollout restart deployment/backend -n demo-apps
+Warning: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false (container "app" must set securityContext.allowPrivilegeEscalation=false), unrestricted capabilities (container "app" must set securityContext.capabilities.drop=["ALL"]), runAsNonRoot != true (pod or container "app" must set securityContext.runAsNonRoot=true), seccompProfile (pod or container "app" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost")
+deployment.apps/backend restarted
+```
+<deployment에 SecurityContext 적용>
+```bash
+vagrant@master:~$ kubectl rollout restart deployment/backend -n demo-apps
+deployment.apps/backend restarted
+```
 **고정 부트스트랩 토큰.**  
 
 `vagrant up` 단일 명령 재현성을 위해 join 토큰을 고정값으로 사용하고 CA 검증을 생략했다. host-only 네트워크로 외부와 격리된 환경이라는 전제 하의 의도적 타협이며, 프로덕션이라면 TTL이 있는 토큰 발급과 `--discovery-token-ca-cert-hash` 검증을 사용해야 한다.
@@ -235,4 +251,4 @@ demo-apps에 default-deny를 적용하자 Hubble에서 prometheus(monitoring) �
 - [x] 2단계: MetalLB + Cilium Gateway API
 - [x] 3단계: GitOps (ArgoCD)
 - [x] 4단계: 옵저버빌리티 : 메트릭(Prometheus/Grafana), 네트워크(Hubble), 로그(Loki/Alloy)
-- [~] 5단계: 시크릿 관리 + 보안 강화 : NetworkPolicy(제로 트러스트)·Sealed Secrets 완료, Pod Security·이미지 스캔 예정
+- [x] 5단계: 시크릿 관리 + 보안 강화 : NetworkPolicy·Sealed Secrets·Pod Security Standards
