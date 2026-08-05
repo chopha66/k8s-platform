@@ -11,7 +11,7 @@ spec:
   source:
     repoURL: https://github.com/chopha66/k8s-platform.git
     targetRevision: master
-    path: demo-apps/namespace/kustomize/overlays/base
+    path: demo-apps/namespace/kustomize/overlays
   destination:
     server: https://kubernetes.default.svc
   syncPolicy:
